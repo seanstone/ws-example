@@ -14,12 +14,11 @@ typedef struct vhd_t {
 	struct lws_vhost*   vhost;
 } vhd_t;
 
-void my_write(struct lws *wsi)
+void my_write(struct lws *wsi, char* msg, size_t len)
 {
-    char buffer[LWS_PRE + 10];
-    char* msg = "hello";
-    snprintf(&buffer[LWS_PRE], sizeof(msg), msg);
-    lws_write(wsi, &buffer[LWS_PRE], sizeof(msg), lws_write_ws_flags(LWS_WRITE_TEXT, 1, 1));
+    char buffer[LWS_PRE + len];
+    memcpy(&buffer[LWS_PRE], msg, len);
+    lws_write(wsi, &buffer[LWS_PRE], len, lws_write_ws_flags(LWS_WRITE_BINARY, 1, 1));
 }
 
 int my_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len)
@@ -37,15 +36,17 @@ int my_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, v
             vhd->vhost   = lws_get_vhost(wsi);
             break;
 
-        case LWS_CALLBACK_ESTABLISHED:
+        case LWS_CALLBACK_ESTABLISHED: {
             lwsl_warn("LWS_CALLBACK_ESTABLISHED\n");
-            my_write(wsi);
-            break;
+            char* msg = "hello";
+            my_write(wsi, msg, strlen(msg));
+        } break;
 
-        case LWS_CALLBACK_SERVER_WRITEABLE:
+        case LWS_CALLBACK_SERVER_WRITEABLE: {
             lwsl_user("LWS_CALLBACK_SERVER_WRITEABLE\n");
-            my_write(wsi);
-            break;
+            char* msg = "hello";
+            my_write(wsi, msg, strlen(msg));
+        } break;
 
         case LWS_CALLBACK_RECEIVE:
             lwsl_user("LWS_CALLBACK_RECEIVE: len %d (rpp %d, first %d, last %d, bin %d)\n",
