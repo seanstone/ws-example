@@ -14,6 +14,14 @@ typedef struct vhd_t {
 	struct lws_vhost*   vhost;
 } vhd_t;
 
+void my_write(struct lws *wsi)
+{
+    char buffer[LWS_PRE + 10];
+    char* msg = "hello";
+    snprintf(&buffer[LWS_PRE], sizeof(msg), msg);
+    lws_write(wsi, &buffer[LWS_PRE], sizeof(msg), lws_write_ws_flags(LWS_WRITE_TEXT, 1, 1));
+}
+
 int my_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len)
 {
 	struct my_pss_t* pss = (my_pss_t*) user;
@@ -31,33 +39,22 @@ int my_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, v
 
         case LWS_CALLBACK_ESTABLISHED:
             lwsl_warn("LWS_CALLBACK_ESTABLISHED\n");
+            my_write(wsi);
             break;
 
         case LWS_CALLBACK_SERVER_WRITEABLE:
             lwsl_user("LWS_CALLBACK_SERVER_WRITEABLE\n");
-            // flags = lws_write_ws_flags(LWS_WRITE_BINARY, pmsg->first, pmsg->final);
-            // /* notice we allowed for LWS_PRE in the payload already */
-            // int m = lws_write(wsi, ((unsigned char *)pmsg->payload) + LWS_PRE, pmsg->len, flags);
-            // if (m < (int)pmsg->len) {
-            //     lwsl_err("ERROR %d writing to ws socket\n", m);
-            //     return -1;
-            // }
-            // lws_callback_on_writable(wsi);
+            my_write(wsi);
             break;
 
         case LWS_CALLBACK_RECEIVE:
-            // lwsl_user("LWS_CALLBACK_RECEIVE: %4d (rpp %5d, first %d, "
-            //     "last %d, bin %d, msglen %d (+ %d = %d))\n",
-            //     (int)len, (int)lws_remaining_packet_payload(wsi),
-            //     lws_is_first_fragment(wsi),
-            //     lws_is_final_fragment(wsi),
-            //     lws_frame_is_binary(wsi), pss->msglen, (int)len,
-            //     (int)pss->msglen + (int)len);
-            // amsg.first = lws_is_first_fragment(wsi);
-            // amsg.final = lws_is_final_fragment(wsi);
-            // amsg.binary = lws_frame_is_binary(wsi);
+            lwsl_user("LWS_CALLBACK_RECEIVE: len %d (rpp %d, first %d, last %d, bin %d)\n",
+                (int)len, (int)lws_remaining_packet_payload(wsi),
+                lws_is_first_fragment(wsi),
+                lws_is_final_fragment(wsi),
+                lws_frame_is_binary(wsi));
+            lws_callback_on_writable(wsi);
             // memcpy((char *)amsg.payload + LWS_PRE, in, len);
-            // lws_callback_on_writable(wsi);
             break;
 
         case LWS_CALLBACK_CLOSED:
