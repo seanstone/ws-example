@@ -30,7 +30,7 @@ int main(int argc, const char **argv)
 	lwsl_user("LWS server starting\n");
 
 	struct lws_context_creation_info info = {
-        .port               = port,
+        .port               = CONTEXT_PORT_NO_LISTEN,//port,
         .protocols          = protocols,
         .pvo                = &pvo,
         .pt_serv_buf_size   = 32 * 1024,
@@ -43,9 +43,7 @@ int main(int argc, const char **argv)
 		return 1;
 	}
 
-    int n = 0;
-	while (n >= 0 && !interrupted)
-		n = lws_service(context, 0);
+	while (!lws_service(context, 0) && !interrupted) ;
 
 	lws_context_destroy(context);
 

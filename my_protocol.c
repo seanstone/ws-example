@@ -4,16 +4,6 @@
 #include <string.h>
 #include "my_protocol.h"
 
-struct msg {
-    size_t len;
-	void *payload;
-};
-
-typedef struct vhd_t {
-	struct lws_context* context;
-	struct lws_vhost*   vhost;
-} vhd_t;
-
 void my_write(struct lws *wsi, char* msg, size_t len)
 {
     char buffer[LWS_PRE + len];
@@ -34,6 +24,7 @@ int my_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, v
             if (!vhd) return -1;
             vhd->context = lws_get_context(wsi);
             vhd->vhost   = lws_get_vhost(wsi);
+            client_connect(vhd);
             break;
 
         case LWS_CALLBACK_ESTABLISHED: {
@@ -62,9 +53,47 @@ int my_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, v
             lwsl_user("LWS_CALLBACK_CLOSED\n");
             break;
 
+        case LWS_CALLBACK_CLIENT_ESTABLISHED:
+            lwsl_user("LWS_CALLBACK_CLIENT_ESTABLISHED\n");
+            break;
+
+        case LWS_CALLBACK_CLIENT_WRITEABLE:
+            lwsl_user("LWS_CALLBACK_CLIENT_WRITEABLE\n");
+            break;
+
+        case LWS_CALLBACK_CLIENT_RECEIVE:
+            lwsl_user("LWS_CALLBACK_CLIENT_RECEIVE: %4d (rpp %5d, first %d, last %d, bin %d)\n",
+                (int)len, (int)lws_remaining_packet_payload(wsi),
+                lws_is_first_fragment(wsi),
+                lws_is_final_fragment(wsi),
+                lws_frame_is_binary(wsi));
+            break;
+
+        case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
+            lwsl_err("CLIENT_CONNECTION_ERROR\n");
+            break;
+
+        case LWS_CALLBACK_CLIENT_CLOSED:
+            lwsl_user("LWS_CALLBACK_CLIENT_CLOSED\n");
+            break;
+
         default:
             break;
 	}
 
 	return 0;
+}
+
+int client_connect(vhd_t* vhd)
+{
+	struct lws_client_connect_info i = {
+        .context    = vhd->context,
+        .vhost      = vhd->vhost,
+        .address    = "localhost",
+        .port       = 7681,
+        .path       = "",
+        .host       = "",
+        .origin     = "",
+    };
+	return !lws_client_connect_via_info(&i);
 }
